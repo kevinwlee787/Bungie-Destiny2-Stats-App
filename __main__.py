@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QApplication
 App = QApplication(sys.argv)
 
 # create the instance of our Window
-window = d2app.MainWindow()
+window = d2app.ApplicationGui()
 
 # start the app
 sys.exit(App.exec())

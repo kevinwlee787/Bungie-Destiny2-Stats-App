@@ -10,8 +10,8 @@ from src.bungie_api.bungieD2_api import *
 manifest = get_manifest()
 
 """ Sometimes you only want certain hashes """
-##destiny_metric_definitions = get_definitions(manifest, 'DestinyMetricDefinition')
-## print(destiny_metric_definitions)
+#destiny_metric_definitions = get_definitions(manifest, 'DestinyMetricDefinition')
+#print(destiny_metric_definitions)
 
 """ these return a map of the hashes into their definitions"""
 destiny_class_definitions = get_definitions(manifest, 'DestinyClassDefinition')
@@ -40,7 +40,7 @@ historical_stats = get_historical_stats(player, 0, groups = ['1'], modes = ['84'
 profile = get_profile(player, components = ['1100', '200'])
 characters = profile['characters']['data']
 
-count = 25
+count = 100
 # this just gets your first character
 hist = get_activity_history(player, next(iter(characters.keys())), count, modes = ['84'])
 
@@ -55,17 +55,18 @@ for characterHash, data in characters.items():
     print('Title: {}\n'.format(Title))
     
 
-"""generates pvp and raid summaries based on historical_stats and metrics"""
+""" summary function usages"""
 print(summary_to_str(pvp_summary(historical_stats), 'PVP'))
 print()
-print(summary_to_str(trials_summary(historical_stats, profile), 'TRIALS'))
+
+print(summary_to_str(trials_summary(historical_stats), 'TRIALS'))
 print()
+
+print(summary_to_str(trials_summary_recent(hist), 'Past {} Trials Matches'.format(count)))
+print()
+
 print(summary_to_str(pve_summary(historical_stats), 'PVE'))
 print()
+
 print(summary_to_str(raid_summary(historical_stats, profile), 'RAID'))
-print()
-
-
-""" generates past 100 match summary for trials """
-print(summary_to_str(recent_trials_summary(hist), 'Past {} Trials Matches'.format(count)))
 print()
