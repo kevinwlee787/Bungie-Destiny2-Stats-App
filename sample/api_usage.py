@@ -41,11 +41,24 @@ profile = get_profile(player, components = ['1100', '200'])
 characters = profile['characters']['data']
 
 count = 100
-# this just gets your first character
-hist = get_activity_history(player, next(iter(characters.keys())), count, modes = ['84'])
+it = iter(characters.keys())
+# generating history for all 3 characters
+# this can be hardcoded as you can have a maximum of 3 characters
+trials_1 = get_activity_history(player, next(it), count, modes = ['84'])
+trials_2 = get_activity_history(player, next(it), count, modes = ['84'])
+trials_3 = get_activity_history(player, next(it), count, modes = ['84'])
 
-"""This prints out every current character of the account"""
+hist = merge_list(count, trials_1, trials_2, trials_3, comparator_activity)
+
+it = iter(characters.keys())
+
+count = 25
+trials_lists_list = []
+pvp_lists_list = []
+
+"""This prints out every current character of the account and generates the recent activity lists"""
 for characterHash, data in characters.items():
+    print("Character Id: {}".format(characterHash))
     print('Class: {}'.format(destiny_class_definitions[str(data['classHash'])]['displayProperties']['name']))
     print('Light: {}'.format(data['light']))
     print('Emblem: {}'.format(bungie_net + data['emblemBackgroundPath']))
@@ -53,16 +66,25 @@ for characterHash, data in characters.items():
     if 'titleRecordHash' in data:
         Title = str(destiny_record_definitions[str(data['titleRecordHash'])]['displayProperties']['name'])
     print('Title: {}\n'.format(Title))
-    
+
+    # recent activity time
+    trials_lists_list.append(get_activity_history(player, characterHash, count,  modes = ['84']))
+    pvp_lists_list.append(get_activity_history(player, characterHash, count, modes = ['70']))
+
+hist_trials = merge_list(count, trials_lists_list[0], trials_lists_list[1], trials_lists_list[2], comparator_activity)
+hist_pvp = merge_list(count, pvp_lists_list[0], pvp_lists_list[1], pvp_lists_list[2], comparator_activity)
 
 """ summary function usages"""
 print(summary_to_str(pvp_summary(historical_stats), 'PVP'))
 print()
 
+print(summary_to_str(recent_pvp_summary(hist_pvp), 'Past {} Crucible Matches'.format(count)))
+print()
+
 print(summary_to_str(trials_summary(historical_stats), 'TRIALS'))
 print()
 
-print(summary_to_str(trials_summary_recent(hist), 'Past {} Trials Matches'.format(count)))
+print(summary_to_str(recent_pvp_summary(hist_trials), 'Past {} Trials Matches'.format(count)))
 print()
 
 print(summary_to_str(pve_summary(historical_stats), 'PVE'))

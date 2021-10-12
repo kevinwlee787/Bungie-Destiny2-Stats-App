@@ -62,7 +62,7 @@ class ApplicationGui(QWidget):
         method creates the QLineEdit for user input
         once user name inputted, redirects to on_user_name_input() method
         """
-        self.user_input = QLineEdit("Charmander787#5161", self)
+        self.user_input = QLineEdit("exampleName#1234", self)
         self.user_input.setFixedSize(250, 30)
         self.user_input.returnPressed.connect(self.on_user_name_input)
         
@@ -221,9 +221,24 @@ class ApplicationGui(QWidget):
         StatsWindow takes in a dict and parses it on construction
         """
         pvp_dict = pvp_summary(get_historical_stats(self.player, self.characterId))
+        if self.characterId == '0':
+            it = iter(self.characters.keys())
+            # 70 is all quickplay modes
+            hist1 = get_activity_history(self.player, next(it), 100, modes = ['70'])
+            hist2 = get_activity_history(self.player, next(it), 100, modes = ['70'])
+            hist3 = get_activity_history(self.player, next(it), 100, modes = ['70'])
+            pvp_recent_dict = recent_pvp_summary(merge_list(100, hist1, hist2, hist3, comparator_activity))
+        else:
+            pvp_recent_dict = recent_pvp_summary(get_activity_history(self.player, self.characterId, 100, modes = ['70']))
+
+        
         self.pvp_stat_window = StatsWindow('PvP Stats', 'crucible-logo.png', pvp_dict)
         self.pvp_stat_window.move(self.x() - 270, self.y() - 40)
         self.pvp_stat_window.show()
+
+        self.pvp_stat_window_recent = StatsWindow('PvP Recent Stats', 'crucible-logo.png', pvp_recent_dict)
+        self.pvp_stat_window_recent.move(self.x() - 520, self.y() - 40)
+        self.pvp_stat_window_recent.show()
 
     # action for raid_stats_button when pressed signal
     def on_raid_button_push(self):
@@ -232,7 +247,6 @@ class ApplicationGui(QWidget):
         using raid_summary(), get_historical_stats, and get_profile (componenets = 1100) to generate the raid dict
         StatsWindow takes in a dict and parses it on construction
         """
-        raid_dict = None
         if self.characterId == '0':
             raid_dict = raid_summary(get_historical_stats(self.player, self.characterId), get_profile(self.player, components = ['1100']))
         else:
@@ -249,23 +263,24 @@ class ApplicationGui(QWidget):
         using trials_summary, get_historical_stats (with mode = 84 as an arg) and get metrics to generate the trials dict
         StatsWindow takes in a dict and parses it on construction
         """
-        # TODO: Finish this up add recent list
-        trials_recent_dict = None
-        trials_dict = None
         if self.characterId == '0':
             trials_dict = trials_summary(get_historical_stats(self.player, self.characterId, groups = ['1'], modes = ['84']), get_profile(self.player, components = ['1100']))
+            it = iter(self.characters.keys())
+            hist_1 = get_activity_history(self.player, next(it), 100, modes = ['84'])
+            hist_2 = get_activity_history(self.player, next(it), 100, modes = ['84'])
+            hist_3 = get_activity_history(self.player, next(it), 100, modes = ['84'])
+            trials_recent_dict = recent_pvp_summary(merge_list(100, hist_1, hist_2, hist_3, comparator_activity))
         else:
             trials_dict = trials_summary(get_historical_stats(self.player, self.characterId, groups = ['1'], modes = ['84']))
-            trials_recent_dict = trials_summary_recent(get_activity_history(self.player, self.characterId, count = 100, modes = ['84']))
+            trials_recent_dict = recent_pvp_summary(get_activity_history(self.player, self.characterId, count = 100, modes = ['84']))
     
         self.trials_stat_window = StatsWindow("Trials Stats", 'trials-logo.jpg', trials_dict)
         self.trials_stat_window.move(self.x() + 520, self.y() - 40)
         self.trials_stat_window.show()
 
-        if trials_recent_dict:
-            self.trials_stat_recent_window = StatsWindow("Recent Trials Stats", 'trials-logo.jpg', trials_recent_dict)
-            self.trials_stat_recent_window.move(self.x() + 770, self.y() - 40)
-            self.trials_stat_recent_window.show()
+        self.trials_stat_recent_window = StatsWindow("Recent Trials Stats", 'trials-logo.jpg', trials_recent_dict)
+        self.trials_stat_recent_window.move(self.x() + 770, self.y() - 40)
+        self.trials_stat_recent_window.show()
 
     ## methods for going back buttons
     def go_back_username(self):
@@ -313,4 +328,3 @@ class StatsWindow(QWidget):
         self.setLayout(layout)
 
         self.show()
-

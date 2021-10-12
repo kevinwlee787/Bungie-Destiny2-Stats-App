@@ -44,7 +44,6 @@ class TestMergeList(unittest.TestCase):
         merged = merge_list(9, l1, l2, l3, lambda x, y: x > y)
         self.assertEqual(expected, merged)
 
-        
 
 if __name__ == '__main__':
     unittest.main()
