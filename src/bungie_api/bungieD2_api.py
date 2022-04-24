@@ -52,7 +52,7 @@ class ResponseWrapper:
 ##
 
 ## function which invokes requests.get() on bungie's public API
-def destiny2_api_hook(url):
+def destiny2_api_hook(url: str) -> ResponseWrapper:
     """ returns ResponseWrapper object generated from requests.get()
 
     this function is the main function of this module, allows you to connect to any
@@ -103,7 +103,7 @@ class Player:
         self.bungieName = displayName + '#' + str(code)
 
 
-def get_player(gamertag):
+def get_player(gamertag: str) -> Player:
     """ returns Player obj representing player's acc
 
     This is an exact match look up
@@ -118,7 +118,7 @@ def get_player(gamertag):
             player.response[0]['bungieGlobalDisplayName'], player.response[0]['bungieGlobalDisplayNameCode'])
 
 
-def get_historical_stats(player, characterId = 0, groups = ['1'], modes = ['0']):
+def get_historical_stats(player: Player, characterId = 0, groups: list = ['1'], modes: list = ['0']):
     """ returns historical stats map from Destiny2.GetHistoricalStats 
 
     Under default args, general stats are returned only: 
@@ -140,7 +140,7 @@ def get_historical_stats(player, characterId = 0, groups = ['1'], modes = ['0'])
         return historical_stats.response
 
 
-def get_profile(player, components):
+def get_profile(player: Player, components: list):
     """ returns Destiny Profile information
 
     Refer to DestinyComponentType enum: https://bungie-net.github.io/multi/schema_Destiny-DestinyComponentType.html
@@ -156,7 +156,7 @@ def get_profile(player, components):
         return profile.response
 
 
-def get_activity_history(player, characterId, count = 25, modes = ['None'], page = 0):
+def get_activity_history(player: Player, characterId: int, count = 25, modes: list = ['None'], page = 0) -> list:
     """ returns list of most recent n = count activities
     
     Arguments:
@@ -176,7 +176,7 @@ def get_activity_history(player, characterId, count = 25, modes = ['None'], page
         return activities.response['activities']
 
 
-def comparator_activity(activity1, activity2):
+def comparator_activity(activity1: str, activity2: str) -> bool:
     """ returns True if activity1 > activity2, False otherwise
     
     Used as a comparator for merge lists
@@ -243,7 +243,7 @@ def comparator_activity(activity1, activity2):
 #  plan is to separate this into its own module
 ##
 
-def summary_to_str(stats_summary_dict, name):
+def summary_to_str(stats_summary_dict: dict, name: str) -> str:
     """ returns a string representation of a player's stats summary
     
     Arguments:
@@ -259,7 +259,7 @@ def summary_to_str(stats_summary_dict, name):
     
     return stats_str
 
-def pvp_summary(historical_stats_general):
+def pvp_summary(historical_stats_general: dict) -> dict:
     """returns an OrderedDict of player's pvp summary
 
     currently keyed: Efficiency (K+A/D), K/D, and Weapon of Choice
@@ -278,7 +278,7 @@ def pvp_summary(historical_stats_general):
             return pvp_dict
 
 
-def pve_summary(historical_stats_general):
+def pve_summary(historical_stats_general: dict) -> dict:
     """ returns OrderedDict of player's general pve summary
     
     historical stats keys: Activities, Kills, Orbs of Light, Revives, Weapon of Choice, Days Played
@@ -300,7 +300,7 @@ def pve_summary(historical_stats_general):
             return pve_dict
 
 
-def raid_summary(historical_stats_general, metrics = None):
+def raid_summary(historical_stats_general: dict, metrics: dict = None) -> dict:
     """return a OrderedDict of player's raid summary
 
     historical stats gives keys: Total Clears, Days Played, and Weapon of Choice
@@ -321,6 +321,8 @@ def raid_summary(historical_stats_general, metrics = None):
             if metrics:
                 # yes this is the actual access path for getting metrics, why? Ask Bungie
                 metrics_actual = metrics['metrics']['data']['metrics']
+                # 3585185883 : VoTD clears
+                raid_dict['Vow of The Disciple Clears'] = metrics_actual['3585185883']['objectiveProgress']['progress']
                 # 2506886274 : VoG clears
                 raid_dict['Vault of Glass Clears'] = metrics_actual['2506886274']['objectiveProgress']['progress']
                 # 954805812 : DSC clears
@@ -335,7 +337,7 @@ def raid_summary(historical_stats_general, metrics = None):
             return raid_dict
 
 
-def trials_summary(historical_stats_trials, metrics = None):
+def trials_summary(historical_stats_trials: dict, metrics: dict = None) -> dict:
     """ returns OrderedDict of all trials statistics: general historical stats, metrics (optional),
     and recent activities from an activity list (optional)
 
@@ -371,7 +373,7 @@ def trials_summary(historical_stats_trials, metrics = None):
             return trials_dict
 
 
-def recent_pvp_summary(activity_list):
+def recent_pvp_summary(activity_list: list) -> dict:
     """ returns OrderedDict of recent trials OR pvp statistics
     
     Arguments:
@@ -391,14 +393,14 @@ def recent_pvp_summary(activity_list):
             losses += datum['values']['standing']['basic']['value']
 
         count = len(activity_list)
-        trials_dict = OrderedDict()
-        trials_dict['Recent KD'] = '{:.2f}'.format(kills / deaths)
-        trials_dict['Recent Efficiency'] = '{:.2f}'.format(defeats / deaths)
-        trials_dict['Recent Win Rate'] = '{:.2f}'.format(((count - losses) / count) * 100)
-        return trials_dict
+        pvp_dict = OrderedDict()
+        pvp_dict['Recent KD'] = '{:.2f}'.format(kills / (deaths if deaths != 0 else 1))
+        pvp_dict['Recent Efficiency'] = '{:.2f}'.format(defeats / (deaths if deaths != 0 else 1))
+        pvp_dict['Recent Win Rate'] = '{:.2f}'.format(((count - losses) / count) * 100)
+        return pvp_dict
     
     
-def merge_list(n, list1, list2, list3, cmp):
+def merge_list(n: int, list1: list, list2: list, list3: list, cmp) -> list:
     """ returns a sorted list based on a comparator
     
     The motivation for this is to be able to past in history of up to 3 characters and 
