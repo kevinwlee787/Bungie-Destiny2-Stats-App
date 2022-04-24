@@ -197,9 +197,6 @@ class ApplicationGui(QWidget):
         self.setFixedSize(500, 400)
 
 
-    ## Thinking about refactoring these on xx button pushes into a method which takes a function as an argument as the
-    ## logic is quite similar for each one, although having 1 method makes the method call alot less clean
-
      # action for pve_stats_button when pressed signal
     def on_pve_button_push(self):
         """ returns void
@@ -208,6 +205,7 @@ class ApplicationGui(QWidget):
         StatsWindow takes in a dict and parses it on construction
         """
         pve_dict = pve_summary(get_historical_stats(self.player, self.characterId))
+        
         self.pve_stat_window = StatsWindow('PvE Stats', 'vangaurd-logo.jpg', pve_dict)
         self.pve_stat_window.move(self.x() - 270, self.y() + 250)
         self.pve_stat_window.show()
@@ -263,24 +261,23 @@ class ApplicationGui(QWidget):
         using trials_summary, get_historical_stats (with mode = 84 as an arg) and get metrics to generate the trials dict
         StatsWindow takes in a dict and parses it on construction
         """
+        # 1 is general stats
+        groups = ['1']
+        trials = ['TrialsOfOsiris']
+
         if self.characterId == '0':
-            trials_dict = trials_summary(get_historical_stats(self.player, self.characterId, groups = ['1'], modes = ['84']), get_profile(self.player, components = ['1100']))
-            it = iter(self.characters.keys())
-            hist_1 = get_activity_history(self.player, next(it), 100, modes = ['84'])
-            hist_2 = get_activity_history(self.player, next(it), 100, modes = ['84'])
-            hist_3 = get_activity_history(self.player, next(it), 100, modes = ['84'])
-            trials_recent_dict = recent_pvp_summary(merge_list(100, hist_1, hist_2, hist_3, comparator_activity))
+            trials_dict = trials_summary(get_historical_stats(self.player, self.characterId, groups, modes = trials), get_profile(self.player, components = ['1100']))
         else:
-            trials_dict = trials_summary(get_historical_stats(self.player, self.characterId, groups = ['1'], modes = ['84']))
-            trials_recent_dict = recent_pvp_summary(get_activity_history(self.player, self.characterId, count = 100, modes = ['84']))
+            trials_dict = trials_summary(get_historical_stats(self.player, self.characterId, groups, modes = trials))
     
         self.trials_stat_window = StatsWindow("Trials Stats", 'trials-logo.jpg', trials_dict)
         self.trials_stat_window.move(self.x() + 520, self.y() - 40)
         self.trials_stat_window.show()
 
-        self.trials_stat_recent_window = StatsWindow("Recent Trials Stats", 'trials-logo.jpg', trials_recent_dict)
-        self.trials_stat_recent_window.move(self.x() + 770, self.y() - 40)
-        self.trials_stat_recent_window.show()
+        self.recent_number_input = RecentStatsWindow("Recent Trials", 'trials-logo.jpg', \
+            self.player, self.characterId, self.characters.keys(), groups, modes = trials)
+        self.recent_number_input.move(self.x() + 770, self.y() - 40)
+        self.recent_number_input.show()
 
     ## methods for going back buttons
     def go_back_username(self):
@@ -307,24 +304,97 @@ class ApplicationGui(QWidget):
 
         self.setFixedSize(self.Stack.sizeHint().width() + 22, self.Stack.sizeHint().height() + 22)
 
-
+    
 class StatsWindow(QWidget):
     """ This class represents a window which displays stats gathered from a dict"""
 
     def __init__(self, name, icon_img, dictionary):
         super().__init__()
+
         self.setWindowTitle(name)
         self.setGeometry(450, 300, 250, 250)
         self.setWindowIcon(QtGui.QIcon('.\images\{iconFile}'.format(iconFile = icon_img)))
-
         # QVBoxLayout is a vertical layout
         layout = QVBoxLayout()
         if dictionary:
             for key, val in dictionary.items():
-                layout.addWidget(QLabel('{}: {}'.format(key, val)))
+                lab = QLabel('{}: {}'.format(key, val), self)
+                lab.setFont(QFont("Terminal", 8))
+                layout.addWidget(lab)
         else:
-            layout.addWidget(QLabel("No Data Found"))
+            layout.addWidget(QLabel("No Data Found", self))
         
         self.setLayout(layout)
+        
+        self.show()
+
+    def on_number_input(self):
+        num = int(self.input.text())
+        trials = ['TrialsOfOsiris']
+
+        if self.characterId == '0':
+            # for account wide, we need to merge history
+            it = iter(self.characters)
+            # adding a +1 because api is wrongly reporting the final game, so just tossing it out here.
+            hist_1 = get_activity_history(self.player, next(it), num + 1, modes = trials)
+            hist_2 = get_activity_history(self.player, next(it), num + 1, modes = trials)
+            hist_3 = get_activity_history(self.player, next(it), num + 1, modes = trials)
+            trials_recent_dict = recent_pvp_summary(merge_list(num, hist_1, hist_2, hist_3, comparator_activity))
+        else:
+            # slicing off last element because again, api is bugged
+            trials_recent_dict = recent_pvp_summary(get_activity_history(self.player, self.characterId, count = num + 1, modes = trials)[:-1])
+
+        self.statsWindow = StatsWindow("Recent Trials", 'trials-logo.jpg', trials_recent_dict)
+        self.statsWindow.show()   
+
+
+class RecentStatsWindow(QMainWindow):
+    """ This class represents a widget which takes an integer input in to determine how many recent matches to analyze """
+    def __init__(self, name, icon_img, player, characterId, characters, groups, modes):
+        super().__init__()
+
+        self.player = player
+        self.characterId = characterId
+        self.characters = characters
+        self.groups = groups
+        self.modes = modes
+
+        window_size = QtCore.QSize(250, 250)
+        self.setWindowTitle(name)
+        self.setGeometry(0, 0, window_size.width(), window_size.height())
+        self.setWindowIcon(QtGui.QIcon('.\images\{iconFile}'.format(iconFile = icon_img)))
+
+        self.Stack = QStackedWidget(self)
+
+        input_size = QtCore.QSize(100, 26)
+        default_number = '7'
+        self.input = QLineEdit(default_number, self)
+        #self.input.setBaseSize(input_size)
+        self.input.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        self.input.returnPressed.connect(self.on_number_input)
+
+        self.Stack.addWidget(self.input)
+        self.Stack.move((window_size.width() - input_size.width()) / 2, (window_size.height() - input_size.height()) / 2)
 
         self.show()
+
+    def on_number_input(self):
+        num = int(self.input.text())
+        trials = ['TrialsOfOsiris']
+
+        if (self.characterId == '0'):
+            # for account wide, we need to merge history
+            it = iter(self.characters)
+            # adding a +1 because api is wrongly reporting the final game, so just tossing it out here.
+            hist_1 = get_activity_history(self.player, next(it), num + 1, modes = trials)
+            hist_2 = get_activity_history(self.player, next(it), num + 1, modes = trials)
+            hist_3 = get_activity_history(self.player, next(it), num + 1, modes = trials)
+            trials_recent_dict = recent_pvp_summary(merge_list(num, hist_1, hist_2, hist_3, comparator_activity))
+        else:
+            trials_recent_dict = recent_pvp_summary(get_activity_history(self.player, self.characterId, count = num, modes = trials))
+
+        statsWindow = StatsWindow("Recent Trials", 'trials-logo.jpg', trials_recent_dict)
+        self.Stack.addWidget(statsWindow)
+        self.Stack.setCurrentIndex(self.Stack.currentIndex() + 1)
+        self.Stack.setFixedSize(250, 250)
+        self.Stack.move(0, 0)

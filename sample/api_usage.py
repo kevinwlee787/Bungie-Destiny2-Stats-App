@@ -10,8 +10,10 @@ from src.bungie_api.bungieD2_api import *
 manifest = get_manifest()
 
 """ Sometimes you only want certain hashes """
+""" Useful for finding hash definitions for metrics"""
 #destiny_metric_definitions = get_definitions(manifest, 'DestinyMetricDefinition')
-#print(destiny_metric_definitions)
+""" Recently used to find hash for Vow of Disciple (new raid) completions """
+#print(destiny_metric_definitions['3585185883'])
 
 """ these return a map of the hashes into their definitions"""
 destiny_class_definitions = get_definitions(manifest, 'DestinyClassDefinition')
